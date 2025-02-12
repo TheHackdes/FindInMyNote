@@ -1,0 +1,149 @@
+#!/bin/bash
+
+VERSION=1.0.1
+
+VAR_INCLUDE=""
+VAR_EDITOR=""
+
+OPTSTRING=":p:e:x:chu"
+
+source ~/.config/fimn/fimn.env
+
+while getopts ${OPTSTRING} opt; do
+  case ${opt} in
+    p)
+      FIMN_DIRECTORY=${OPTARG}
+      echo "Change path. New Path ${FIMN_DIRECTORY}"
+      ;;
+    x)
+      FIMN_EXTENTION=${OPTARG}
+      echo "Change extention. New Extention ${FIMN_EXTENTION}"
+      ;;
+    e)
+      FIMN_EDITOR=${OPTARG}
+      echo "Change editor. New Editor ${FIMN_EDITOR}"
+      ;;
+    c)
+      vim ~/.config/fimn/fimn.env
+      ;;
+    h)
+      echo "FindInMyNote - fimn"
+      echo "Version : ${VERSION}"
+      echo ""
+      echo "OPTIONS"
+      echo ""
+      echo "-p    Change source note"
+      echo "-c    Open config file"
+      echo "-h    Print help"
+      echo ""
+      echo "VARIABLES"
+      echo ""
+      echo "FIMN_DIRECTORY : ${FIMN_DIRECTORY}"
+      echo "FIMN_EDITOR    : ${FIMN_EDITOR}"
+      echo "FIMN_EXTENTION : ${FIMN_EXTENTION}"
+      exit 0
+      ;;
+    u)
+      VERSION_1=$(cat ~/.local/bin/fimn | grep -i "^version" | cut -d "=" -f 2)
+      VERSION_2=$(curl -s https://raw.githubusercontent.com/TheHackdes/FindInMyNote/refs/heads/dev/install | grep -i "^version" | cut -d "=" -f 2)
+      if [[ ! $VERSION_1 == $VERSION_2 ]]; then
+        curl -s https://raw.githubusercontent.com/TheHackdes/FindInMyNote/refs/heads/dev/install > ~/.local/bin/fimn
+	echo [+] - Update Successfull, migrate of $VERSION_1 to $VERSION_2
+      fi
+      exit 0
+      ;;
+    :)
+      echo "Option -${OPTARG} requires an argument."
+      exit 1
+      ;;
+    ?)
+      echo "Invalid option: -${OPTARG}."
+      exit 1
+      ;;
+  esac
+done
+
+
+### COPY SCRIPT ###
+
+if [[ ! -f ~/.local/bin/fimn ]]; then
+  cp ${0} ~/.local/bin/fimn 
+  if [[ ! $? -eq 0 ]]; then
+    echo "Erreur : Lors de la copie de fimn dans ~/.local/bin/fimn"
+    exit 1
+  fi
+else
+  VAR_SHA1=$(md5sum ${0} | cut -d " " -f1)
+  VAR_SHA2=$(md5sum ~/.local/bin/fimn | cut -d " " -f1)
+  if [[ "${VAR_SHA1}" != "${VAR_SHA2}" ]]; then
+    cp ${0} ~/.local/bin/fimn 
+    if [[ ! $? -eq 0 ]]; then
+      echo "Erreur : Lors de la copie de fimn dans ~/.local/bin/fimn"
+      exit 1
+    fi
+  fi
+fi
+
+### CREATE FOLDER ####
+
+if [[ ! -d ~/.config/fimn ]]; then
+  mkdir -p ~/.config/fimn
+  if [[ ! $? -eq 0 ]]; then
+    echo "Erreur : Lors de la creation du dosier : ./config/fimn"
+    exit 2
+  fi
+fi
+
+### COPY ENV FILE ###
+
+if [[ ! -f ~/.config/fimn/fimn.env ]]; then
+  cp ./default.env ~/.config/fimn/fimn.env
+  if [[ ! $? -eq 0 ]]; then
+    echo "Erreur : Lors de la copie du fichier d'environment dans ~/.config/fimn/fimn.env"
+    exit 3
+  fi
+fi
+
+#source ~/.config/fimn/fimn.env
+
+if [[ $FIMN_EXTENTION ]];then
+  VAR_INCLUDE="--include \"*.${FIMN_EXTENTION}\""
+fi
+
+if [[ ! $FIMN_EDITOR ]];then
+  FIMN_EDITOR="vim"
+fi
+
+#echo "FIMN_DIRECTORY : $FIMN_DIRECTORY"
+#echo "FIMN_EDITOR    : $FIMN_EDITOR"
+#echo "VAR_INCLUDE    : $VAR_INCLUDE"
+
+#VAR=$(grep -Rnsi --include "*.${FIMN_EXTENTION}" . ${FIMN_DIRECTORY} | fzf \
+VAR=$(eval grep -Rnsi ${VAR_INCLUDE} . ${FIMN_DIRECTORY} | fzf \
+  --delimiter=: \
+  --with-nth '3' \
+  --ansi \
+  --preview-window 'right:60%' \
+  --preview='bat --color=always --style=full -n -H {2} -r {2}: --paging=always {1}')
+
+FILE=$(echo ${VAR} | cut -d ":" -f 1)
+LINE=$(echo ${VAR} | cut -d ":" -f 2)
+
+if [[ -n "$FILE" && -n "$LINE" ]]; then
+  if [[ $FIMN_EDITOR ]];then
+    if [[ "$FIMN_EDITOR" =~ ^(vim|nvim)$ ]]; then
+      echo "vim editor"
+      VAR_EDITOR="${FIMN_EDITOR} ${FILE} +${LINE}"
+      ${VAR_EDITOR}
+    else
+      VAR_EDITOR="${FIMN_EDITOR} ${FILE}"
+      ${VAR_EDITOR}
+    fi
+  else
+    echo "Error : Probleme avec l'editeur"
+    exit 4
+  fi
+  echo "VAR_EDITOR     : $VAR_EDITOR"
+else
+  exit 0
+fi
