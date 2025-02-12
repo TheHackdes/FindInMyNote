@@ -69,11 +69,11 @@ chmod u+x ./install
 |---|---|---|
 |`FIMN_DIRECTORY`|le repertoire ou son stocker les notes|**Aucune : Obligatoire**|
 |`FIMN_EDITOR`|L'editeur a utiliser|`vim`|
+|`FIMN_PREVIEW`|Le visulisateur à utiliser|`bat`|
 |`FIMN_EXTENTION`|L'extention a rechercher par default |Aucun|
 
 ## To Do
 
 - Auto download bat and fzf
 - Create man
-- `FIMN_PREVIEW` : Chang preview bin
 - Error with space in path

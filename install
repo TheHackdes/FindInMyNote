@@ -1,11 +1,18 @@
 #!/bin/bash
 
-VERSION=1.0.1
+VERSION=1.0.2
 
 VAR_INCLUDE=""
 VAR_EDITOR=""
 
 OPTSTRING=":p:e:x:chu"
+
+reset
+
+#FIMN_DIRECTORY="/tmp/toto"
+#FIMN_EDITOR="vim"
+#FIMN_EXTENTION="md"
+#FIMN_PREVIEW="mfsdfsdf"
 
 source ~/.config/fimn/fimn.env
 
@@ -44,6 +51,7 @@ while getopts ${OPTSTRING} opt; do
     echo "FIMN_DIRECTORY : ${FIMN_DIRECTORY}"
     echo "FIMN_EDITOR    : ${FIMN_EDITOR}"
     echo "FIMN_EXTENTION : ${FIMN_EXTENTION}"
+    echo "FIMN_PREVIEW   : ${FIMN_PREVIEW}"
     exit 0
     ;;
   u)
@@ -114,12 +122,19 @@ if [[ ! $FIMN_EDITOR ]]; then
   FIMN_EDITOR="vim"
 fi
 
+if [[ $FIMN_PREVIEW == "bat" ]]; then
+  echo "bat preview"
+  FIMN_PREVIEW="bat --color=always --style=full -n -H {2} -r {2}: --paging=always"
+elif [[ -z $FIMN_PREVIEW ]]; then
+  FIMN_PREVIEW="cat"
+fi
+
 VAR=$(eval grep -Rnsi ${VAR_INCLUDE} . ${FIMN_DIRECTORY} | fzf \
   --delimiter=: \
   --with-nth '3' \
   --ansi \
   --preview-window 'right:60%' \
-  --preview='bat --color=always --style=full -n -H {2} -r {2}: --paging=always {1}')
+  --preview="${FIMN_PREVIEW} {1}")
 
 FILE=$(echo ${VAR} | cut -d ":" -f 1)
 LINE=$(echo ${VAR} | cut -d ":" -f 2)
